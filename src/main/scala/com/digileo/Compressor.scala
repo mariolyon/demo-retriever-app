@@ -3,49 +3,55 @@ package com.digileo
 case class Repeat[A](count: Int, element: A) {
   def expand: List[A] = List.fill(count)(element)
 
-  def join(other: Repeat[A]) = {
+  def getItem(index: Int): Option[A] =
+    if (index < count)
+      Some(element)
+    else
+      None
+
+  def join(other: Repeat[A]): Repeat[A] = {
     require(element == other.element)
     Repeat(count + other.count, element)
   }
 }
 
-case class Compressed[A](val elems: List[Repeat[A]]) {
-  val count = elems.map(_.count).sum
-}
-
 trait Compressor[A] {
-  def compress[A](values: List[A]): Compressed[A] = {
-    val elems =
-      values.foldRight(List.empty[Repeat[A]])(
-        (value, acc) => acc match {
-          case Nil => List(Repeat(1, value))
-          case _ if acc.head.element == value => Repeat(acc.head.count + 1, value) :: acc.tail
-          case _ => Repeat(1, value) :: acc
-        })
-    Compressed(elems)
-  }
+  type Compressed[A] = List[Repeat[A]]
 
-  def expand[A](compressed: Compressed[A]): List[A] =
-    compressed.elems.foldLeft(List.empty[A])((acc, repeat) => acc ++ repeat.expand)
+  def getItem(index: Int, repeat: Repeat[A]):Option[A] = repeat.getItem(index)
 
-  def getItem[A](index: Int, compressed: Compressed[A]): Option[A] = {
+  def getItem(index: Int, compressed: Compressed[A]):Option[A] ={
     index match {
-      case i if i >= compressed.count => None
-      case i if i < compressed.elems.head.count => Some(compressed.elems.head.element)
-      case i => getItem(i - compressed.elems.head.count, Compressed(compressed.elems.tail))
+      case i if compressed.size == 1 && i >= compressed.head.count => None
+      case i if i < compressed.head.count => Some(compressed.head.element)
+      case i => getItem(i - compressed.head.count, compressed.tail)
     }
   }
 
-  def join[A](compressed0: Compressed[A], compressed1: Compressed[A]): Compressed[A] = {
-    (compressed0.elems, compressed1.elems) match {
-      case (Nil, Nil) => Compressed(Nil)
-      case (Nil, elems) => Compressed(elems)
-      case (elems, Nil) => Compressed(elems)
-      case (elems0, elems1) if elems0.last.element == elems1.head.element => {
-        val joined = elems0.last.join(elems1.head)
-        Compressed(elems0.init ++ (joined :: elems1.tail))
+  implicit class CompressedOps[A](elems: Compressed[A]) {
+    def join(otherElems: List[Repeat[A]]): List[Repeat[A]] = {
+      (elems, otherElems) match {
+        case (Nil, Nil) => Nil
+        case (Nil, elems) => elems
+        case (elems, Nil) => elems
+        case (elems0, elems1) if elems0.last.element == elems1.head.element => {
+          val joined = elems0.last.join(elems1.head)
+          elems0.init ++ (joined :: elems1.tail)
+        }
+        case (elems0, elems1) => elems0 ++ elems1
       }
-      case (elems0, elems1) => Compressed(elems0 ++ elems1)
     }
+
+    def expand: List[A] = elems.foldLeft(List.empty[A])((acc, repeat) => acc ++ repeat.expand)
+
+    def count = elems.map(_.count).sum
   }
+
+  def compress[A](values: List[A]): Compressed[A] =
+    values.foldRight(List.empty[Repeat[A]])(
+      (value, acc) => acc match {
+        case Nil => List(Repeat(1, value))
+        case _ if acc.head.element == value => Repeat(acc.head.count + 1, value) :: acc.tail
+        case _ => Repeat(1, value) :: acc
+      })
 }
