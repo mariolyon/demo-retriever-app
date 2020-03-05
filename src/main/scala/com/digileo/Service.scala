@@ -22,7 +22,7 @@ object Service {
   })
 
   class ServiceBehavior(context: ActorContext[Command], loader: ActorRef[Loader.LoadRequest]) extends AbstractBehavior[Command](context) {
-    private var cache = List.empty[Value]
+    private val cache = new Cache()
 
     private implicit val timeout = Timeout.create(context.system.settings.config.getDuration("app.routes.ask-timeout"))
     private implicit val scheduler = context.system.scheduler
@@ -30,24 +30,25 @@ object Service {
     override def onMessage(message: Command): Behavior[Command] = {
       message match {
         case Question(index, replyTo) =>
-          if (cache.size > index) {
-            replyTo ! Some(cache(index))
-            this
-          } else {
-            var shouldFetchMoreValues = true
-            while (shouldFetchMoreValues) {
-              val newValues = fetchMoreValues()
-              cache ++= newValues
-              shouldFetchMoreValues = index >= cache.size && newValues.size > 0
+          cache.get(index) match {
+            case answer@Some(_) => {
+              replyTo ! answer
+              this
             }
-
-            val result = if (index < cache.size) Some(cache(index)) else None
-            replyTo ! result
-
-            this
+            case None => {
+              var shouldFetchMoreValues = true
+              while (shouldFetchMoreValues) {
+                val newValues = fetchMoreValues()
+                cache.add(newValues)
+                shouldFetchMoreValues = cache.contains(index) == false && newValues.size > 0
+              }
+              replyTo ! cache.get(index)
+              this
+            }
           }
       }
     }
+
 
     def fetchMoreValues(): List[Value] = {
       val futureLoadResponse: Future[LoadResponse] = loader.ask(Loader.LoadRequest(_))
