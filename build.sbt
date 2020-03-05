@@ -5,7 +5,7 @@ lazy val root = (project in file(".")).
   settings(
     inThisBuild(List(
       organization    := "com.example",
-      scalaVersion    := "2.13.1"
+      scalaVersion    := "2.12.10"
     )),
     name := "retriever",
     libraryDependencies ++= Seq(
@@ -17,6 +17,6 @@ lazy val root = (project in file(".")).
 
       "com.typesafe.akka" %% "akka-http-testkit"        % akkaHttpVersion % Test,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion     % Test,
-      "org.scalatest"     %% "scalatest"                % "3.0.8"         % Test
+      "org.scalatest"     %% "scalatest"                % "3.1.1"         % Test
     )
   )
