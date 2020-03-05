@@ -27,7 +27,7 @@ object App {
   def main(args: Array[String]): Unit = {
     val rootBehavior = Behaviors.setup[Nothing] { ctx =>
 
-      val cacheRef = ctx.spawn(Cache(), "CacheActor")
+      val cacheRef = ctx.spawn(Service(), "CacheActor")
       ctx.watch(cacheRef)
 
       val routes = new AppRoutes(cacheRef)(ctx.system)

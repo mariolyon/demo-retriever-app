@@ -7,9 +7,10 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.matchers.should.Matchers
 
-class AppRoutesSpec extends WordSpec with Matchers with ScalaFutures with ScalatestRouteTest {
+class AppRoutesSpec extends AnyWordSpecLike with Matchers with ScalaFutures with ScalatestRouteTest {
 
   lazy val testKit = ActorTestKit()
   implicit def typedSystem = testKit.system
@@ -18,14 +19,14 @@ class AppRoutesSpec extends WordSpec with Matchers with ScalaFutures with Scalat
 
   "AppRoutes" should {
     "reject request if route is called with a non-numeric string" in {
-      val mockCache = testKit.spawn(Behaviors.receiveMessage[Cache.Command] {
-        case Cache.Question(_: Int, replyTo: ActorRef[Answer]) => {
+      val mockService = testKit.spawn(Behaviors.receiveMessage[Service.Command] {
+        case Service.Question(_: Int, replyTo: ActorRef[Answer]) => {
           replyTo ! Some('B')
           Behaviors.same
         }
       })
 
-      lazy val routes = new AppRoutes(mockCache).appRoutes
+      lazy val routes = new AppRoutes(mockService).appRoutes
 
       val request = HttpRequest(uri = "/xyz")
 
@@ -34,8 +35,8 @@ class AppRoutesSpec extends WordSpec with Matchers with ScalaFutures with Scalat
     }
 
     "respond with OK and value if Cache answers with a value " in {
-      val mockCache = testKit.spawn(Behaviors.receiveMessage[Cache.Command] {
-        case Cache.Question(_: Int, replyTo: ActorRef[Answer]) => {
+      val mockCache = testKit.spawn(Behaviors.receiveMessage[Service.Command] {
+        case Service.Question(_: Int, replyTo: ActorRef[Answer]) => {
           replyTo ! Some('B')
           Behaviors.same
         }
@@ -53,8 +54,8 @@ class AppRoutesSpec extends WordSpec with Matchers with ScalaFutures with Scalat
     }
 
     "respond with InternalServerError and empty string if Cache answers with None " in {
-      val mockCache = testKit.spawn(Behaviors.receiveMessage[Cache.Command] {
-        case Cache.Question(_: Int, replyTo: ActorRef[Answer]) => {
+      val mockCache = testKit.spawn(Behaviors.receiveMessage[Service.Command] {
+        case Service.Question(_: Int, replyTo: ActorRef[Answer]) => {
           replyTo ! None
           Behaviors.same
         }
