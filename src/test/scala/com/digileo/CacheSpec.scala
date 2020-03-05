@@ -28,5 +28,13 @@ class CacheSpec extends AnyWordSpecLike with Matchers {
       cache.add(List('C', 'D'))
       cache.get(3) should equal(Some('D'))
     }
+
+    "the internal state should be compressed" in {
+      val cache = new Cache()
+      cache.add(List('A', 'A'))
+      cache.add(List('A', 'D'))
+      cache.get(2) should equal(Some('A'))
+      cache.get(3) should equal(Some('D'))
+    }
   }
 }

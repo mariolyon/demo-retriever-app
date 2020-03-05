@@ -23,6 +23,7 @@ trait Compressor[A] {
   def getItem(index: Int, compressed: Compressed[A]):Option[A] ={
     index match {
       case i if compressed.size == 1 && i >= compressed.head.count => None
+      case i if compressed.isEmpty => None
       case i if i < compressed.head.count => Some(compressed.head.element)
       case i => getItem(i - compressed.head.count, compressed.tail)
     }
@@ -44,7 +45,7 @@ trait Compressor[A] {
 
     def expand: List[A] = elems.foldLeft(List.empty[A])((acc, repeat) => acc ++ repeat.expand)
 
-    def count = elems.map(_.count).sum
+    def count() = elems.map(_.count).sum
   }
 
   def compress[A](values: List[A]): Compressed[A] =

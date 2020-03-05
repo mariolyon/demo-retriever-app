@@ -1,16 +1,13 @@
 package com.digileo
 
-class Cache {
-  private var values = List.empty[Value]
+class Cache extends Compressor[Value] {
+  private var compressed: Compressed[Value] = List.empty[Repeat[Value]]
 
-  def add(newValues: List[Value]): Unit = values ++= newValues
+  def add(newValues: List[Value]): Unit =
+    compressed = compressed.join( compress(newValues))
 
-  def contains(index: Int): Boolean = index < values.size
+  def contains(index: Int): Boolean =
+    index < compressed.count()
 
-  def get(index: Int): Option[Value] =
-    if (contains(index))
-      Some(values(index))
-    else
-      None
-
+  def get(index: Int): Option[Value] = getItem(index, compressed)
 }
