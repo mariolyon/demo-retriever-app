@@ -39,33 +39,41 @@ object Service {
     private implicit val timeout = Timeout.create(context.system.settings.config.getDuration("app.routes.ask-timeout"))
     private implicit val scheduler = context.system.scheduler
 
-    override def onMessage(message: Command): Behavior[Command] = {
-      message match {
-        case Question(index, replyTo) =>
-          cache.get(index) match {
-            case answer@Some(_) => {
-              replyTo ! answer
-              this
-            }
-            case None => {
-              var shouldFetchMoreValues = true
-              while (shouldFetchMoreValues) {
-                val newValues = fetchMoreValues()
-                cache.add(newValues)
-                shouldFetchMoreValues = cache.contains(index) == false && newValues.size > 0
-              }
-              replyTo ! cache.get(index)
-              this
-            }
+    override def onMessage(message: Command): Behavior[Command] = open(message)
+
+    private def open(message: Command) = message match {
+      case Question(index, replyTo) =>
+        cache.get(index) match {
+          case answer@Some(_) => {
+            replyTo ! answer
+            Behaviors.same[Command]
           }
-      }
+          case None => {
+            var shouldFetchMoreValues = true
+            while (shouldFetchMoreValues) {
+              val newValues = fetchMoreValues()
+              cache.add(newValues)
+              shouldFetchMoreValues = cache.contains(index) == false && newValues.size > 0
+            }
+            replyTo ! cache.get(index)
+            Behaviors.same[Command]
+          }
+        }
     }
+
+    private def openx: Behavior[Command] = Behaviors.receiveMessage[Command](open)
+
+
+
 
     def fetchMoreValues(): List[Value] = {
       val futureLoadResponse: Future[LoadResponse] = loader.ask(Loader.LoadRequest(_))
       val response = Await.result(futureLoadResponse, timeout.duration)
       response.result
     }
+
+
+
   }
 
 }
