@@ -3,7 +3,7 @@ package com.digileo
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-class CompressorTest extends AnyWordSpecLike with Matchers with Compressor[Value] {
+class CompressorSpec extends AnyWordSpecLike with Matchers with Compressor[Value] {
   "Compressor" should {
     "compress a list of values" in {
       val input = List('A', 'A', 'A', 'B', 'C', 'C', 'D', 'A')

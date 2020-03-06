@@ -3,10 +3,12 @@ package com.digileo
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
+import akka.stream.Materializer
 import akka.util.Timeout
 
-import scala.concurrent.{Await, Future}
 import scala.collection.immutable.List
+import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success}
 
 object Service {
 
@@ -17,7 +19,16 @@ object Service {
   case class LoadResponse(result: List[Value])
 
   def apply(): Behavior[Command] = Behaviors.setup(context => {
-    val loader: ActorRef[Loader.LoadRequest] = context.spawn(Loader(), "LoaderActor")
+    val sourceUrl = context.system.settings.config.getString("app.source-url")
+
+    val httpClient = {
+      val actorSystem = akka.actor.ActorSystem()
+      val materializer = Materializer(context)
+      val ec = context.system.executionContext
+      new SimpleHttpClient(actorSystem, materializer, ec)
+    }
+
+    val loader: ActorRef[Loader.LoadRequest] = context.spawn(Loader(sourceUrl, httpClient), "LoaderActor")
     new ServiceBehavior(context, loader)
   })
 
@@ -49,7 +60,6 @@ object Service {
       }
     }
 
-
     def fetchMoreValues(): List[Value] = {
       val futureLoadResponse: Future[LoadResponse] = loader.ask(Loader.LoadRequest(_))
       val response = Await.result(futureLoadResponse, timeout.duration)
@@ -65,10 +75,26 @@ object Loader {
 
   case class LoadRequest(replyTo: ActorRef[Service.LoadResponse]) extends Command
 
-  def apply(): Behaviors.Receive[LoadRequest] = Behaviors.receiveMessage[LoadRequest] {
-    case LoadRequest(replyTo: ActorRef[Service.LoadResponse]) =>
-      val newValues = List('A')
-      replyTo ! Service.LoadResponse(newValues)
-      Behaviors.same
+  def apply(sourceUrl: String, httpClient: HttpClient): Behaviors.Receive[LoadRequest] = Behaviors.receive[LoadRequest] {
+    (context, message) => message match {
+      case LoadRequest(replyTo: ActorRef[Service.LoadResponse]) => {
+        implicit val executionContext = context.system.executionContext
+
+        val futurePayload: Future[String] = httpClient.getBodyAsString(sourceUrl)
+
+        futurePayload.onComplete {
+          case Success(payload) =>
+            val newValues = payload.split("\n").filterNot(_.isBlank).map(_.charAt(0)).toList
+            println(s"Read ${newValues.size} values.")
+            replyTo ! Service.LoadResponse(newValues)
+          case Failure(exception) =>
+            println(s"Exception return from HttpClient: ${exception}.")
+            replyTo ! Service.LoadResponse(List.empty)
+        }
+
+        Behaviors.same[LoadRequest]
+      }
+    }
   }
+
 }
