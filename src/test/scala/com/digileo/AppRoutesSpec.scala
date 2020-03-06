@@ -34,7 +34,7 @@ class AppRoutesSpec extends AnyWordSpecLike with Matchers with ScalaFutures with
       result.handled should equal(false)
     }
 
-    "respond with OK and value if Cache answers with a value " in {
+    "respond with OK and the value if Cache answers with a value " in {
       val mockCache = testKit.spawn(Behaviors.receiveMessage[Service.Command] {
         case Service.Question(_: Int, replyTo: ActorRef[Answer]) => {
           replyTo ! Some('B')
@@ -49,7 +49,7 @@ class AppRoutesSpec extends AnyWordSpecLike with Matchers with ScalaFutures with
       request ~> routes ~> check {
         status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`text/plain(UTF-8)`)
-        entityAs[String] should ===("B")
+        entityAs[String] should ===("B\n")
       }
     }
 

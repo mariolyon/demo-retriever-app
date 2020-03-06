@@ -23,7 +23,7 @@ class AppRoutes(service: ActorRef[Service.Command])(implicit val system: ActorSy
           val result = getItem(index)
           onSuccess(result) {
             case None => complete(StatusCodes.InternalServerError ,"")
-            case Some(value) => complete(value.toString)
+            case Some(value) => complete(s"${value}\n")
           }
       }
     }
