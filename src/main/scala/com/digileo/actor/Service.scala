@@ -1,6 +1,5 @@
 package com.digileo.actor
 
-import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.stream.Materializer
@@ -9,7 +8,6 @@ import com.digileo.util.{Cache, SimpleHttpClient}
 import com.digileo.{Answer, Value}
 
 import scala.collection.immutable.List
-import scala.concurrent.{Await, Future}
 
 object Service {
 
@@ -17,7 +15,7 @@ object Service {
 
   case class Question(index: Int, replyTo: ActorRef[Answer]) extends Command
 
-  case class LoadResponse(result: List[Value])
+  case class LoadResponse(result: List[Value]) extends Command
 
   def apply(): Behavior[Command] = Behaviors.setup(context => {
     val sourceUrl = context.system.settings.config.getString("app.source-url")
@@ -39,40 +37,38 @@ object Service {
     private implicit val timeout = Timeout.create(context.system.settings.config.getDuration("app.routes.ask-timeout"))
     private implicit val scheduler = context.system.scheduler
 
-    override def onMessage(message: Command): Behavior[Command] = open(message)
+    override def onMessage(message: Command): Behavior[Command] = questionHandler(message)
 
-    private def open(message: Command) = message match {
-      case Question(index, replyTo) =>
-        cache.get(index) match {
-          case answer@Some(_) => {
-            replyTo ! answer
-            Behaviors.same[Command]
+    private def questionHandler(message: Command): Behavior[Command] = message match {
+        case Question(index, replyTo) =>
+          cache.get(index) match {
+            case answer@Some(_) =>
+              replyTo ! answer
+              Behaviors.same
+            case None =>
+              loader ! Loader.LoadRequest(context.self)
+              waitForLoadBehavior(index, replyTo)
           }
-          case None => {
-            var shouldFetchMoreValues = true
-            while (shouldFetchMoreValues) {
-              val newValues = fetchMoreValues()
-              cache.add(newValues)
-              shouldFetchMoreValues = cache.contains(index) == false && newValues.size > 0
-            }
+        case _ => Behaviors.unhandled
+      }
+
+    private def loadResponseHandler(index: Int, replyTo: ActorRef[Answer]): (Command) => Behavior[Command] =
+      (message: Command) => message match {
+        case LoadResponse(newValues) =>
+          cache.add(newValues)
+          if (!cache.contains(index) && newValues.size > 0) {
+            loader ! Loader.LoadRequest(context.self)
+            Behaviors.same
+          } else {
             replyTo ! cache.get(index)
-            Behaviors.same[Command]
+            waitForQuestionBehavior
           }
-        }
-    }
+        case _ => Behaviors.unhandled
+      }
 
-    private def openx: Behavior[Command] = Behaviors.receiveMessage[Command](open)
+    private def waitForLoadBehavior(index: Int, replyTo: ActorRef[Answer]): Behavior[Command] = Behaviors.receiveMessage[Command](loadResponseHandler(index, replyTo))
 
-
-
-
-    def fetchMoreValues(): List[Value] = {
-      val futureLoadResponse: Future[LoadResponse] = loader.ask(Loader.LoadRequest(_))
-      val response = Await.result(futureLoadResponse, timeout.duration)
-      response.result
-    }
-
-
+    private def waitForQuestionBehavior: Behavior[Command] = Behaviors.receiveMessage[Command](questionHandler)
 
   }
 

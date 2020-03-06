@@ -1,7 +1,7 @@
 package com.digileo
 
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
-import akka.actor.typed.ActorRef
+import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.model._
@@ -14,7 +14,7 @@ import org.scalatest.matchers.should.Matchers
 class AppRoutesSpec extends AnyWordSpecLike with Matchers with ScalaFutures with ScalatestRouteTest {
 
   lazy val testKit = ActorTestKit()
-  implicit def typedSystem = testKit.system
+  implicit def typedSystem: ActorSystem[Nothing] = testKit.system
   override def createActorSystem(): akka.actor.ActorSystem =
     testKit.system.toClassic
 
@@ -25,6 +25,7 @@ class AppRoutesSpec extends AnyWordSpecLike with Matchers with ScalaFutures with
           replyTo ! Some('B')
           Behaviors.same
         }
+        case _ => Behaviors.unhandled
       })
 
       lazy val routes = new AppRoutes(mockService).appRoutes
@@ -41,6 +42,7 @@ class AppRoutesSpec extends AnyWordSpecLike with Matchers with ScalaFutures with
           replyTo ! Some('B')
           Behaviors.same
         }
+        case _ => Behaviors.unhandled
       })
 
       lazy val routes = new AppRoutes(mockCache).appRoutes
@@ -60,6 +62,7 @@ class AppRoutesSpec extends AnyWordSpecLike with Matchers with ScalaFutures with
           replyTo ! None
           Behaviors.same
         }
+        case _ => Behaviors.unhandled
       })
 
       lazy val routes = new AppRoutes(mockCache).appRoutes
