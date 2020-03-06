@@ -6,6 +6,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{RejectionHandler, Route}
 import akka.util.Timeout
+import com.digileo.actor.Service
 
 import scala.concurrent.Future
 

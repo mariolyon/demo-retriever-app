@@ -1,7 +1,8 @@
-package com.digileo
+package com.digileo.actor
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import com.digileo.Service.LoadResponse
+import com.digileo.actor.Service.LoadResponse
+import com.digileo.util.HttpClient
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpecLike
 

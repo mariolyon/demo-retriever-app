@@ -1,9 +1,10 @@
-package com.digileo
+package com.digileo.actor
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.Behaviors
-import com.digileo.Service.ServiceBehavior
+import com.digileo.actor.Service.ServiceBehavior
+import com.digileo.{Answer, Value}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpecLike
 

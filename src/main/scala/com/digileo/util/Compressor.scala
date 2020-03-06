@@ -1,4 +1,4 @@
-package com.digileo
+package com.digileo.util
 
 case class Repeat[A](count: Int, element: A) {
   def expand: List[A] = List.fill(count)(element)

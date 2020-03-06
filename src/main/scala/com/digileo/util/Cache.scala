@@ -1,4 +1,6 @@
-package com.digileo
+package com.digileo.util
+
+import com.digileo.Value
 
 class Cache extends Compressor[Value] {
   private var compressed: Compressed[Value] = List.empty[Repeat[Value]]

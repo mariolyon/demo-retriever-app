@@ -5,6 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
+import com.digileo.actor.Service
 
 import scala.util.{Failure, Success}
 

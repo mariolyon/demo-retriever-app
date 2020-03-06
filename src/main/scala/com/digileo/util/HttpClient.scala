@@ -1,12 +1,12 @@
-package com.digileo
+package com.digileo.util
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
 
 import scala.concurrent.{ExecutionContext, Future}
-import akka.http.scaladsl.unmarshalling.Unmarshal
 
 trait HttpClient {
   def getBodyAsString(url: String): Future[String]

@@ -1,5 +1,6 @@
-package com.digileo
+package com.digileo.util
 
+import com.digileo.Value
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
